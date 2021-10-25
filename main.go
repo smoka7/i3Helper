@@ -8,20 +8,20 @@ import (
 	i3 "go.i3wm.org/i3/v4"
 )
 
-//sizes of container for snapp
+//sizes of container for snap
 var sizes = map[string]string{
-	"left":  "50ppt 100ppt",
-	"right": "50ppt 100ppt",
-	"top":   "100ppt 50ppt",
-	"down":  "100ppt 50ppt",
+	"left":   "50ppt 100ppt",
+	"right":  "50ppt 100ppt",
+	"top":    "100ppt 50ppt",
+	"bottom": "100ppt 50ppt",
 }
 
-//start positions of container for snapp direction
+//start positions of container for snap direction
 var positions = map[string]string{
-	"left":  "0ppt 0ppt",
-	"right": "50ppt 0ppt",
-	"top":   "0ppt 0ppt",
-	"down":  "0ppt 50ppt",
+	"left":   "0ppt 0ppt",
+	"right":  "50ppt 0ppt",
+	"top":    "0ppt 0ppt",
+	"bottom": "0ppt 50ppt",
 }
 
 func last(index int, ids []int64) int {
@@ -58,7 +58,7 @@ func getWindowIds(tree i3.Tree) []int64 {
 	return traverseNodes(ws)
 }
 
-func snapp(focused *i3.Node, dir string) {
+func snap(focused *i3.Node, dir string) {
 	if !focused.IsFloating() {
 		i3.RunCommand("floating toggle")
 	}
@@ -111,8 +111,8 @@ func main() {
 		return m.Focused == true
 	})
 	switch command {
-	case "snapp":
-		snapp(focused, arg)
+	case "snap":
+		snap(focused, arg)
 	case "focus":
 		focus(tree, focused, arg)
 	case "peek":
