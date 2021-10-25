@@ -8,6 +8,7 @@ make windows floating and snap them to the left, right, top, or bottom of worksp
 ### peek
 peek through all containers in a workspace.
 ## Installation
+you can download binaries from release page or build it yourself
 First install [go](https://github.com/golang/go).
 
 ```
@@ -15,7 +16,6 @@ git clone https://github.com/smoka7/i3Helper.git
 cd i3Helper
 go install
 ```
-
 
 ## Usage
 add commands to your i3 config
@@ -31,5 +31,4 @@ bindsym $mod + F4 exec i3Helper snap right
 
 # Valid time units are "ns","us","ms","s","m","h".
 bindsym $mod + p exec i3Helper peek 500ms
-
 ```
