@@ -24,41 +24,44 @@ var positions = map[string]string{
 	"bottom": "0ppt 50ppt",
 }
 
-func last(index int, ids []int64) int {
+func last(index int, len int) int {
 	if index == 0 {
-		return len(ids) - 1
+		return len - 1
 	}
 	return index - 1
 }
 
-func next(index int, ids []int64) int {
-	if index == len(ids)-1 {
+func next(index int, len int) int {
+	if index == len-1 {
 		return 0
 	}
 	return index + 1
 }
 
-func traverseNodes(parent *i3.Node) (ids []int64) {
+func traverseNodes(parent *i3.Node) (nodes []*i3.Node) {
 	if parent.Window != 0 {
-		ids = append(ids, parent.Window)
+		nodes = append(nodes, parent)
 	}
 	for _, node := range parent.Nodes {
-		ids = append(ids, traverseNodes(node)...)
+		nodes = append(nodes, traverseNodes(node)...)
 	}
 	for _, node := range parent.FloatingNodes {
-		ids = append(ids, traverseNodes(node)...)
+		nodes = append(nodes, traverseNodes(node)...)
 	}
 	return
 }
 
-func getWindowIds(tree i3.Tree) []int64 {
+func getWindowNodes(tree i3.Tree) []*i3.Node {
 	ws := tree.Root.FindFocused(func(n *i3.Node) bool {
 		return n.Type == i3.WorkspaceNode
 	})
 	return traverseNodes(ws)
 }
 
-func snap(focused *i3.Node, dir string) {
+func snap(tree i3.Tree, dir string) {
+	focused := tree.Root.FindChild(func(m *i3.Node) bool {
+		return m.Focused == true
+	})
 	if !focused.IsFloating() {
 		i3.RunCommand("floating toggle")
 	}
@@ -66,29 +69,34 @@ func snap(focused *i3.Node, dir string) {
 	i3.RunCommand("move position " + positions[dir])
 }
 
-func focus(tree i3.Tree, focused *i3.Node, direction string) {
-	focusedIndex := 0
-	windowIds := getWindowIds(tree)
-	for i, id := range windowIds {
-		if id == focused.Window {
+func focus(tree i3.Tree, direction string) {
+	focusedIndex, fullScreen := 0, 0
+	windowNodes := getWindowNodes(tree)
+	windowCount := len(windowNodes)
+	for i, node := range windowNodes {
+		if node.Focused {
 			focusedIndex = i
+			fullScreen = int(node.FullscreenMode)
 		}
 	}
-	if focused.FullscreenMode == 1 {
+	if fullScreen >= 1 {
 		i3.RunCommand("fullscreen toggle")
 	}
 	if direction == "prev" {
-		i3.RunCommand(fmt.Sprintf("[id=%d] focus", windowIds[last(focusedIndex, windowIds)]))
+		i3.RunCommand(fmt.Sprintf("[id=%d] focus", windowNodes[last(focusedIndex, windowCount)].Window))
 		return
 	}
-	i3.RunCommand(fmt.Sprintf("[id=%d] focus", windowIds[next(focusedIndex, windowIds)]))
+	i3.RunCommand(fmt.Sprintf("[id=%d] focus", windowNodes[next(focusedIndex, windowCount)].Window))
 }
-func peek(tree i3.Tree, focused *i3.Node, timeout string) {
+func peek(tree i3.Tree, timeout string) {
+	var focusedId int64
 	focusedIndex := 0
-	windowIds := getWindowIds(tree)
-	for i, id := range windowIds {
-		if id == focused.Window {
+	windowNodes := getWindowNodes(tree)
+	windowCount := len(windowNodes)
+	for i, node := range windowNodes {
+		if node.Focused {
 			focusedIndex = i
+			focusedId = node.Window
 		}
 	}
 	t, err := time.ParseDuration(timeout)
@@ -96,9 +104,9 @@ func peek(tree i3.Tree, focused *i3.Node, timeout string) {
 		fmt.Println(err)
 		return
 	}
-	for nextId := 0; int64(nextId) != focused.Window; time.Sleep(t) {
-		focusedIndex = next(focusedIndex, windowIds)
-		nextId = int(windowIds[focusedIndex])
+	for nextId := 0; int64(nextId) != focusedId; time.Sleep(t) {
+		focusedIndex = next(focusedIndex, windowCount)
+		nextId = int(windowNodes[focusedIndex].Window)
 		i3.RunCommand(fmt.Sprintf("[id=%d] focus", nextId))
 	}
 }
@@ -107,15 +115,12 @@ func main() {
 	command := os.Args[1]
 	arg := os.Args[2]
 	tree, _ := i3.GetTree()
-	focused := tree.Root.FindChild(func(m *i3.Node) bool {
-		return m.Focused == true
-	})
 	switch command {
 	case "snap":
-		snap(focused, arg)
+		snap(tree, arg)
 	case "focus":
-		focus(tree, focused, arg)
+		focus(tree, arg)
 	case "peek":
-		peek(tree, focused, arg)
+		peek(tree, arg)
 	}
 }
