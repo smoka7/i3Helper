@@ -24,6 +24,16 @@ var positions = map[string]string{
 	"bottom": "0ppt 50ppt",
 }
 
+var helpMessage = `valid commands are:
+focus next
+focus prev
+snap left
+snap top
+snap bottom
+snap right
+peek 500ms
+#Valid time units are ns,us,ms,s,m,h.`
+
 func last(index int, len int) int {
 	if index == 0 {
 		return len - 1
@@ -62,6 +72,10 @@ func snap(tree i3.Tree, dir string) {
 	focused := tree.Root.FindChild(func(m *i3.Node) bool {
 		return m.Focused == true
 	})
+	if _, ok := sizes[dir]; !ok {
+		fmt.Println("valid directions are top,bottom,left and right")
+		os.Exit(1)
+	}
 	if !focused.IsFloating() {
 		i3.RunCommand("floating toggle")
 	}
@@ -84,10 +98,13 @@ func focus(tree i3.Tree, direction string) {
 	}
 	if direction == "prev" {
 		i3.RunCommand(fmt.Sprintf("[id=%d] focus", windowNodes[last(focusedIndex, windowCount)].Window))
-		return
+	} else if direction == "next" {
+		i3.RunCommand(fmt.Sprintf("[id=%d] focus", windowNodes[next(focusedIndex, windowCount)].Window))
 	}
-	i3.RunCommand(fmt.Sprintf("[id=%d] focus", windowNodes[next(focusedIndex, windowCount)].Window))
+	fmt.Println("valid directions are next and prev")
+	os.Exit(1)
 }
+
 func peek(tree i3.Tree, timeout string) {
 	var focusedId int64
 	focusedIndex := 0
@@ -112,6 +129,10 @@ func peek(tree i3.Tree, timeout string) {
 }
 
 func main() {
+	if len(os.Args) != 3 {
+		fmt.Println(helpMessage)
+		os.Exit(1)
+	}
 	command := os.Args[1]
 	arg := os.Args[2]
 	tree, _ := i3.GetTree()
@@ -122,5 +143,8 @@ func main() {
 		focus(tree, arg)
 	case "peek":
 		peek(tree, arg)
+	default:
+		fmt.Println(helpMessage)
+		os.Exit(1)
 	}
 }
